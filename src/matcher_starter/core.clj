@@ -59,6 +59,9 @@
                 :cmd(call ?lift)
                 }
     :going-up{ :pre((manipulable ?lift)
+                    (agent ?P)
+                    (waiting ?P ?wait)
+                    (true? ?wait)
                     (moving ?lift ?move)
                     (true? ?move)
                     (at ?lift ?floor)
@@ -70,6 +73,9 @@
 
               }
     :going-down{:pre((manipulable ?lift)
+                     (agent ?P)
+                     (waiting ?P ?wait)
+                     (true? ?wait)
                      (moving ?lift ?move)
                      (true? ?move)
                      (at ?lift ?floor)
@@ -131,7 +137,7 @@
                       (selected ?lift ?selected)
                   )
                  :add((waiting ?P true))
-                 :del((at ?lift ?floor))
+                 :del((waiting ?P ?wait))
                  :txt(waiting for ?lift to reach ?selected floor)
                  :cmd(waiting at ?selected)
 
@@ -139,11 +145,64 @@
     :enter{
            :pre((manipulable ?lift)
                 (container ?lift)
+                (agent ?person)
                 (containable ?person)
-                ())
+                (contains ?lift nil)
+                (at ?person ?p-floor)
+                (at ?lift ?p-floor)
+                (moving ?lift ?move)
+                (not ?move))
+           :add((contains ?lift ?person)
+                (in ?person ?lift))
+           :del((contains ?lift nil)
+                (in ?person nil))
+           :txt(?person entered ?lift)
+           :cmd(enter ?lift)
+
            }
-    :select-floor
-    :wait-selected
-    :exit
+    :select-floor{
+                  :pre((manipulable ?lift)
+                       (agent ?person)
+                       (container ?lift)
+                       (containable ?person)
+                       (in ?person ?lift)
+                       (moving ?lift ?move)
+                       (not ?move))
+                  :add((moving ?lift true))
+                  :del((moving ?lift ?move))
+                  :txt(floor selected)
+                  :cmd(select floor)
+                  }
+    :wait-selected{
+                   :pre((manipulable ?lift)
+                           (agent ?person)
+                           (container ?lift)
+                           (containable ?person)
+                           (in ?person ?lift)
+                           (moving ?lift ?move)
+                           (true? ?move)
+                           (waiting ?person ?wait))
+                   :add((waiting ?person true))
+                   :del((waiting ?person ?wait))
+                   :txt(waiting to reach selected floor)
+                   :cmd(wait in lift)
+                   }
+    :exit{
+          :pre((manipulable ?lift)
+               (container ?lift)
+               (agent ?person)
+               (containable ?person)
+               (contains ?lift ?person)
+               (at ?person ?p-floor)
+               (at ?lift ?p-floor)
+               (moving ?lift ?move)
+               (not ?move))
+          :add((contains ?lift nil)
+               (in ?person nil))
+          :del((contains ?lift ?person)
+               (in ?person ?lift))
+          :txt(?person exited ?lift)
+          :cmd(exit ?lift)
+          }
     }
   )
