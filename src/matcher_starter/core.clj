@@ -45,15 +45,14 @@
   )
 
 
-(def ops
+(def ops-alex
   '{call-lift {
                 :pre ((agent ?P)
                       (container ?lift)
                       (moving lift false)
                       (at ?lift ?floor)
-                      (at ?P ?p-floor)
-                      (not (= ?floor ?p-floor))
-                      )
+                      (at ?P ?p-floor))
+
                 :add((moving ?lift true))
                 :del((moving ?lift false))
                 :txt(?P called ?lift from ?p-floor)
@@ -126,12 +125,13 @@
                       (agent ?P)
                       (waiting ?P false)
                       (at ?lift ?floor)
+                      (at ?P ?p-floor)
                       (moving ?lift true)
 
                   )
                  :add((waiting ?P true))
                  :del((waiting ?P false))
-                 :txt(waiting for ?lift to reach ?selected floor)
+                 :txt(waiting for ?lift to reach ?p-floor floor)
                  :cmd(waiting at ?selected)
 
              }
@@ -158,7 +158,7 @@
                   :pre(
                        (agent ?person)
                        (container ?lift)
-
+                       (contains ?lift ?person)
                        (moving ?lift false))
                   :add((moving ?lift true))
                   :del((moving ?lift false))
@@ -169,7 +169,7 @@
                    :pre(
                            (agent ?person)
                            (container ?lift)
-
+                        (contains ?lift ?person)
                            (moving ?lift true)
                            (waiting ?person false))
                    :add((waiting ?person true))
