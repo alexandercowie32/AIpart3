@@ -8,8 +8,8 @@
   "I don't do a whole lot."
   [x]
   (println x "Hello, World!"))
-(def state1 '#{(at lift fifth)
-               (at Person ground)
+(def state1 '#{(at lift ground)
+               (at Person fifth)
                ;(going Person)
 
                (waiting Person false)
@@ -44,9 +44,10 @@
      }
   )
 
-
+;probably could consolidate the moving ups and the moving downs,
+;regardless of occupancy
 (def ops-alex
-  '{call-lift {
+  '{call-lift {;call the lift to the floor the agent is on
                 :pre ((agent ?P)
                       (container ?lift)
                       (moving lift false)
@@ -58,7 +59,9 @@
                 :txt(?P called ?lift from ?p-floor)
                 :cmd(call ?lift)
                 }
-    going-up{ :pre((container ?lift)
+    going-up{;moving the lift when it is not occupied
+             :pre((container ?lift)
+                  (contains ?lift nil)
                     (agent ?P)
                     (waiting ?P true)
                     (moving ?lift true)
@@ -70,7 +73,9 @@
               :cmd(ascend lift)
 
               }
-    going-down{:pre((container ?lift)
+    going-down{;moving the lift when not occupied
+               :pre((container ?lift)
+                    (contains ?lift nil)
                      (agent ?P)
                      (waiting ?P true)
                      (moving ?lift true)
@@ -82,10 +87,12 @@
                 :cmd(descend lift)
 
                 }
-    going-up-filled{:pre((container ?lift)
+    going-up-filled{;moving the occupant up one floor
+                    :pre((container ?lift)
                           (agent ?P)
                           (contains ?lift ?P)
                           (moving ?lift true)
+                         (waiting ?P true)
                           (at ?lift ?floor)
                           (above ?floor ?above))
                      :add((at ?lift ?above)
@@ -96,12 +103,14 @@
                      :cmd(ascend person)
 
                      }
-    going-down-filled{:pre((container ?lift)
+    going-down-filled{;moving the occupant down one floor
+                      :pre((container ?lift)
                             (agent ?P)
+                           (waiting ?P true)
                             (contains ?lift ?P)
                             (moving ?lift true)
                             (at ?lift ?floor)
-                            (above ?floor ?below))
+                            (below ?floor ?below))
                        :add((at ?lift ?below)
                             (at ?P ?below))
                        :del((at ?lift ?floor)
@@ -132,7 +141,7 @@
                  :add((waiting ?P true))
                  :del((waiting ?P false))
                  :txt(waiting for ?lift to reach ?p-floor floor)
-                 :cmd(waiting at ?selected)
+                 :cmd(waiting at ?p-floor)
 
              }
     enter{
@@ -143,12 +152,14 @@
                 (contains ?lift nil)
                 (at ?person ?p-floor)
                 (at ?lift ?p-floor)
+                (waiting ?person true)
                 (moving ?lift false)
                 )
            :add((contains ?lift ?person)
+                (waiting ?person false)
                 )
            :del((contains ?lift nil)
-                )
+                (waiting ?person true))
            :txt(?person entered ?lift)
            :cmd(enter ?lift)
 
@@ -169,7 +180,7 @@
                    :pre(
                            (agent ?person)
                            (container ?lift)
-                        (contains ?lift ?person)
+                          (contains ?lift ?person)
                            (moving ?lift true)
                            (waiting ?person false))
                    :add((waiting ?person true))
@@ -182,11 +193,14 @@
                (container ?lift)
                (agent ?person)
                (contains ?lift ?person)
+               (waiting ?person true)
                (at ?person ?p-floor)
                (at ?lift ?p-floor)
                (moving ?lift false))
-          :add((contains ?lift nil))
-          :del((contains ?lift ?person))
+          :add((contains ?lift nil)
+               (waiting ?person false))
+          :del((contains ?lift ?person)
+               (waiting ?person true))
           :txt(?person exited ?lift)
           :cmd(exit ?lift)
           }
