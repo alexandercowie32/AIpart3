@@ -2,27 +2,34 @@
   (:require [org.clojars.cognesence.breadth-search.core :refer :all]
             [org.clojars.cognesence.matcher.core :refer :all]
             [org.clojars.cognesence.ops-search.core :refer :all])
-  :dependencies[org.clojars.cognesence/ops-search])
+  )
 
 (defn foo
   "I don't do a whole lot."
   [x]
   (println x "Hello, World!"))
+(def state1 '#{(at lift fifth)
+               (at Person ground)
+               ;(going Person)
+
+               (waiting Person false)
+               (moving lift false)
+               (contains lift nil)})
 (def world
   '#{
-     (at lift fifth)
-     (at Person ground)
-     ;(going Person)
-     (in Person nil)
-     (waiting Person false)
-     (moving lift false)
-     (contains lift nil)
+
      ;(selected lift ground)
-     (manipulable lift)
+
      (container  lift)
      (agent Person)
-     (containable Person)
-     (place destination)
+
+     (place ground)
+     (place first)
+     (place second)
+     (place third)
+     (place fourth)
+     (place fifth)
+     ;(place destination)
      (above ground first)
      (above first second)
      (above second third)
@@ -33,22 +40,16 @@
      (below third second)
      (below fourth third)
      (below fifth fourth)
-     (place ground)
-     (place first)
-     (place second)
-     (place third)
-     (place fourth)
-     (place fifth)
+
      }
   )
 
 
 (def ops
-  '{:call-lift {
+  '{call-lift {
                 :pre ((agent ?P)
-                      (manipulable ?lift)
-                      (moving lift ?called)
-                      (not ?called)
+                      (container ?lift)
+                      (moving lift false)
                       (at ?lift ?floor)
                       (at ?P ?p-floor)
                       (not (= ?floor ?p-floor))
@@ -58,12 +59,10 @@
                 :txt(?P called ?lift from ?p-floor)
                 :cmd(call ?lift)
                 }
-    :going-up{ :pre((manipulable ?lift)
+    going-up{ :pre((container ?lift)
                     (agent ?P)
-                    (waiting ?P ?wait)
-                    (true? ?wait)
-                    (moving ?lift ?move)
-                    (true? ?move)
+                    (waiting ?P true)
+                    (moving ?lift true)
                     (at ?lift ?floor)
                     (above ?floor ?above))
               :add((at ?lift ?above))
@@ -72,12 +71,10 @@
               :cmd(ascend lift)
 
               }
-    :going-down{:pre((manipulable ?lift)
+    going-down{:pre((container ?lift)
                      (agent ?P)
-                     (waiting ?P ?wait)
-                     (true? ?wait)
-                     (moving ?lift ?move)
-                     (true? ?move)
+                     (waiting ?P true)
+                     (moving ?lift true)
                      (at ?lift ?floor)
                      (below ?floor ?below))
                 :add((at ?lift ?below))
@@ -86,11 +83,10 @@
                 :cmd(descend lift)
 
                 }
-    :going-up-filled{:pre((manipulable ?lift)
+    going-up-filled{:pre((container ?lift)
                           (agent ?P)
                           (contains ?lift ?P)
-                          (moving ?lift ?move)
-                          (true? ?move)
+                          (moving ?lift true)
                           (at ?lift ?floor)
                           (above ?floor ?above))
                      :add((at ?lift ?above)
@@ -101,11 +97,10 @@
                      :cmd(ascend person)
 
                      }
-    :going-down-filled{:pre((manipulable ?lift)
+    going-down-filled{:pre((container ?lift)
                             (agent ?P)
                             (contains ?lift ?P)
-                            (moving ?lift ?move)
-                            (true? ?move)
+                            (moving ?lift true)
                             (at ?lift ?floor)
                             (above ?floor ?below))
                        :add((at ?lift ?below)
@@ -116,91 +111,82 @@
                        :cmd(descend person)
 
                        }
-    :stop-lift{:pre((manipulable ?lift)
-                    (moving ?lift ?move)
-                    (true? ?move))
+    stop-lift{:pre((container ?lift)
+                    (moving ?lift true))
                :add((moving ?lift false))
-               :del((moving ?lift ?move))
+               :del((moving ?lift true))
                :txt(?lift has stopped moving)
                :cmd(stop lift)
 
           }
 
-    :wait-called{
-                 :pre((manipulable ?lift)
+
+    wait-called{
+                 :pre((container ?lift)
                       (agent ?P)
-                      (waiting ?P ?wait)
-                      (not ?wait)
+                      (waiting ?P false)
                       (at ?lift ?floor)
-                      (moving ?lift ?move)
-                      (true? ?move)
-                      (selected ?lift ?selected)
+                      (moving ?lift true)
+
                   )
                  :add((waiting ?P true))
-                 :del((waiting ?P ?wait))
+                 :del((waiting ?P false))
                  :txt(waiting for ?lift to reach ?selected floor)
                  :cmd(waiting at ?selected)
 
              }
-    :enter{
-           :pre((manipulable ?lift)
+    enter{
+           :pre(
+
                 (container ?lift)
                 (agent ?person)
-                (containable ?person)
                 (contains ?lift nil)
                 (at ?person ?p-floor)
                 (at ?lift ?p-floor)
-                (moving ?lift ?move)
-                (not ?move))
+                (moving ?lift false)
+                )
            :add((contains ?lift ?person)
-                (in ?person ?lift))
+                )
            :del((contains ?lift nil)
-                (in ?person nil))
+                )
            :txt(?person entered ?lift)
            :cmd(enter ?lift)
 
            }
-    :select-floor{
-                  :pre((manipulable ?lift)
+
+    select-floor{
+                  :pre(
                        (agent ?person)
                        (container ?lift)
-                       (containable ?person)
-                       (in ?person ?lift)
-                       (moving ?lift ?move)
-                       (not ?move))
+
+                       (moving ?lift false))
                   :add((moving ?lift true))
-                  :del((moving ?lift ?move))
+                  :del((moving ?lift false))
                   :txt(floor selected)
                   :cmd(select floor)
                   }
-    :wait-selected{
-                   :pre((manipulable ?lift)
+    wait-selected{
+                   :pre(
                            (agent ?person)
                            (container ?lift)
-                           (containable ?person)
-                           (in ?person ?lift)
-                           (moving ?lift ?move)
-                           (true? ?move)
-                           (waiting ?person ?wait))
+
+                           (moving ?lift true)
+                           (waiting ?person false))
                    :add((waiting ?person true))
-                   :del((waiting ?person ?wait))
+                   :del((waiting ?person false))
                    :txt(waiting to reach selected floor)
                    :cmd(wait in lift)
                    }
-    :exit{
-          :pre((manipulable ?lift)
+    exit{
+          :pre(
                (container ?lift)
                (agent ?person)
-               (containable ?person)
                (contains ?lift ?person)
                (at ?person ?p-floor)
                (at ?lift ?p-floor)
-               (moving ?lift ?move)
-               (not ?move))
-          :add((contains ?lift nil)
-               (in ?person nil))
-          :del((contains ?lift ?person)
-               (in ?person ?lift))
+               (moving ?lift false))
+          :add((contains ?lift nil))
+          :del((contains ?lift ?person))
           :txt(?person exited ?lift)
           :cmd(exit ?lift)
           }
