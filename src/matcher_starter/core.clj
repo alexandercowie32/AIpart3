@@ -8,16 +8,19 @@
   "I don't do a whole lot."
   [x]
   (println x "Hello, World!"))
-(def state-alex
+
+(def start-state
   '#{(at lift ground)
      (at Person fifth)
      (waiting Person false)
      (moving lift false)
      (contains lift nil)})
-(def world-alex
+
+(def world
   '#{
      (container  lift)
      (agent Person)
+     (opening doors false)
      (place ground)
      (place first)
      (place second)
@@ -39,7 +42,7 @@
 
 ;probably could consolidate the moving ups and the moving downs,
 ;regardless of occupancy
-(def ops-alex
+(def ops
   '{call-lift {;call the lift to the floor the agent is on
                 :pre ((agent ?P)
                       (container ?lift)
@@ -134,7 +137,8 @@
                 (at ?person ?p-floor)
                 (at ?lift ?p-floor)
                 (waiting ?person true)
-                (moving ?lift false))
+                (moving ?lift false)
+                (opening ?doors true))
            :add((contains ?lift ?person)
                 (waiting ?person false))
            :del((contains ?lift nil)
@@ -170,7 +174,8 @@
                (waiting ?person true)
                (at ?person ?p-floor)
                (at ?lift ?p-floor)
-               (moving ?lift false))
+               (moving ?lift false)
+               (opening ?doors true))
           :add((contains ?lift nil)
                (waiting ?person false))
           :del((contains ?lift ?person)
@@ -178,5 +183,28 @@
           :txt(?person exited ?lift)
           :cmd(exit ?lift)
           }
+
+    ;lift doors open
+    doors-open{
+               :pre ((container ?lift)
+                     (moving ?lift false)
+                     (opening ?doors false))
+               :add (opening ?doors true)
+               :del (opening ?doors false)
+               :txt (opening ?lift doors)
+               :cmd (opening doors)
+               }
+
+    ;lift doors close
+    doors-closed{
+                 :pre ((container ?lift)
+                       (moving ?lift false)
+                       (opening ?doors true))
+                 :add (opening ?doors false)
+                 :del (opening ?doors true)
+                 :txt (closing ?lift doors)
+                 :cmd (closing doors)
+                 }
+
     }
   )
