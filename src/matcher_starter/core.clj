@@ -11,7 +11,7 @@
      (waiting Person false)
      (moving elevator false)
      (contains elevator nil)
-     (open ?door true)
+     (open door true)
      })
 (def world
   '#{
