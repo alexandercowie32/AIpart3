@@ -4,189 +4,215 @@
             [org.clojars.cognesence.ops-search.core :refer :all])
   )
 
-(defn foo
-  "I don't do a whole lot."
-  [x]
-  (println x "Hello, World!"))
-
-(def start-state
+(def lift-state-1
   '#{(at lift ground)
-     (at Person fifth)
-     (waiting Person false)
-     (moving lift false)
-     (contains lift nil)})
-
-(def world
-  '#{
-     (container  lift)
-     (agent Person)
+     (at User fifth)
      (opening doors false)
-     (place ground)
-     (place first)
-     (place second)
-     (place third)
-     (place fourth)
-     (place fifth)
-     (above ground first)
-     (above first second)
-     (above second third)
-     (above third fourth)
-     (above fourth fifth)
-     (below first ground)
-     (below second first)
-     (below third second)
-     (below fourth third)
-     (below fifth fourth)
+     (waiting User false)
+     (moving lift false)
+     (occupied lift nil)})
+
+(def lift-state-2
+  '#{(at lift fifth)
+     (at User ground)
+     (opening doors false)
+     (waiting User false)
+     (moving lift false)
+     (occupied lift nil)})
+
+
+(def elevator-world
+  '#{
+     (elevator lift)
+     (user Person)
+     (location ground)
+     (location first)
+     (location second)
+     (location third)
+     (location fourth)
+     (location fifth)
+     (upwards ground first)
+     (upwards first second)
+     (upwards second third)
+     (upwards third fourth)
+     (upwards fourth fifth)
+     (downwards first ground)
+     (downwards second first)
+     (downwards third second)
+     (downwards fourth third)
+     (downwards fifth fourth)
      }
   )
 
-;probably could consolidate the moving ups and the moving downs,
-;regardless of occupancy
-(def ops
-  '{call-lift {;call the lift to the floor the agent is on
-                :pre ((agent ?P)
-                      (container ?lift)
-                      (moving lift false)
-                      (at ?lift ?floor)
-                      (at ?P ?p-floor))
-                :add((moving ?lift true))
-                :del((moving ?lift false))
-                :txt(?P called ?lift from ?p-floor)
-                :cmd(call ?lift)
-                }
-    going-up{;moving the lift when it is not occupied
-             :pre((container ?lift)
-                  (contains ?lift nil)
-                  (agent ?P)
-                  (waiting ?P true)
-                  (moving ?lift true)
-                  (at ?lift ?floor)
-                  (above ?floor ?above))
-             :add((at ?lift ?above))
-             :del((at ?lift ?floor))
-             :txt(?lift moves up from ?floor to ?above)
-             :cmd(ascend lift)
-              }
-    going-down{;moving the lift when not occupied
-               :pre((container ?lift)
-                    (contains ?lift nil)
-                    (agent ?P)
-                    (waiting ?P true)
-                    (moving ?lift true)
-                    (at ?lift ?floor)
-                    (below ?floor ?below))
-               :add((at ?lift ?below))
-               :del((at ?lift ?floor))
-               :txt(?lift moves down from ?floor to ?below)
-               :cmd(descend lift)
-                }
-    going-up-filled{;moving the occupant up one floor
-                    :pre((container ?lift)
-                         (agent ?P)
-                         (contains ?lift ?P)
-                         (moving ?lift true)
-                         (waiting ?P true)
-                         (at ?lift ?floor)
-                         (above ?floor ?above))
-                    :add((at ?lift ?above)
-                         (at ?P ?above))
-                    :del((at ?lift ?floor)
-                         (at ?P ?floor))
-                    :txt(?lift moves ?P up from ?floor to ?above)
-                    :cmd(ascend person)
-                    }
-    going-down-filled{;moving the occupant down one floor
-                      :pre((container ?lift)
-                           (agent ?P)
-                           (waiting ?P true)
-                           (contains ?lift ?P)
-                           (moving ?lift true)
-                           (at ?lift ?floor)
-                           (below ?floor ?below))
-                       :add((at ?lift ?below)
-                            (at ?P ?below))
-                       :del((at ?lift ?floor)
-                            (at ?P ?floor))
-                       :txt(?lift moves ?P down from ?floor to ?below)
-                       :cmd(descend person)
-                       }
-    stop-lift{;stop the lift moving
-              :pre((container ?lift)
-                    (moving ?lift true))
-               :add((moving ?lift false))
-               :del((moving ?lift true))
-               :txt(?lift has stopped moving)
-               :cmd(stop lift)
-          }
-    wait-called{;wait for the lift to reach the floor the agent is on
-                 :pre((container ?lift)
-                      (agent ?P)
-                      (waiting ?P false)
-                      (at ?lift ?floor)
-                      (at ?P ?p-floor)
-                      (moving ?lift true))
-                 :add((waiting ?P true))
-                 :del((waiting ?P false))
-                 :txt(waiting for ?lift to reach ?p-floor floor)
-                 :cmd(waiting at ?p-floor)
-             }
-    enter{;person enters the lift
-           :pre((container ?lift)
-                (agent ?person)
-                (contains ?lift nil)
-                (at ?person ?p-floor)
-                (at ?lift ?p-floor)
-                (waiting ?person true)
-                (moving ?lift false)
-                (opening ?doors true))
-           :add((contains ?lift ?person)
-                (waiting ?person false))
-           :del((contains ?lift nil)
-                (waiting ?person true))
-           :txt(?person entered ?lift)
-           :cmd(enter ?lift)
-           }
-    select-floor{;person selects the floor and lift starts moving
-                  :pre((agent ?person)
-                       (container ?lift)
-                       (contains ?lift ?person)
-                       (moving ?lift false))
-                  :add((moving ?lift true))
-                  :del((moving ?lift false))
-                  :txt(floor selected)
-                  :cmd(select floor)
-                  }
-    wait-selected{;person waits for lift to take them to their floor
-                   :pre((agent ?person)
-                        (container ?lift)
-                        (contains ?lift ?person)
-                        (moving ?lift true)
-                        (waiting ?person false))
-                   :add((waiting ?person true))
-                   :del((waiting ?person false))
-                   :txt(waiting to reach selected floor)
-                   :cmd(wait in lift)
-                   }
-    exit{;person exits the lift
-          :pre((container ?lift)
-               (agent ?person)
-               (contains ?lift ?person)
-               (waiting ?person true)
-               (at ?person ?p-floor)
-               (at ?lift ?p-floor)
-               (moving ?lift false)
-               (opening ?doors true))
-          :add((contains ?lift nil)
-               (waiting ?person false))
-          :del((contains ?lift ?person)
-               (waiting ?person true))
-          :txt(?person exited ?lift)
-          :cmd(exit ?lift)
-          }
 
-    ;lift doors open
+(def elevator-operators
+  '{
+    ;request the elevator to the current floor called by the user
+    request-elevator{
+                     :pre ((user ?U)
+                           (elevator ?lift)
+                           (moving lift false)
+                           (at ?lift ?l-floor)
+                           (at ?U ?u-floor))
+                     :add((moving ?lift true))
+                     :del((moving ?lift false))
+                     :txt(?U called ?lift from ?u-floor)
+                     :cmd(request ?lift)
+                     }
+
+    ;moving the elevator upwards while it is not occupied
+    traverse-upward{
+                    :pre((elevator ?lift)
+                         (user ?U)
+                         (occupied ?lift nil)
+                         (waiting ?U true)
+                         (moving ?lift true)
+                         (at ?lift ?l-floor)
+                         (upwards ?l-floor ?above))
+                    :add((at ?lift ?above))
+                    :del((at ?lift ?l-floor))
+                    :txt(?lift moves up from ?l-floor to ?above)
+                    :cmd(traversing upwards lift)
+                    }
+
+    ;moving the elevator downwards while it is not occupied
+    traverse-downward{
+                      :pre((elevator ?lift)
+                           (occupied ?lift nil)
+                           (user ?U)
+                           (waiting ?U true)
+                           (moving ?lift true)
+                           (at ?lift ?l-floor)
+                           (downwards ?l-floor ?below))
+                      :add((at ?lift ?below))
+                      :del((at ?lift ?l-floor))
+                      :txt(?lift moves down from ?l-floor to ?below)
+                      :cmd(traversing downwards lift)
+                      }
+
+    ;moving the elevator and user up one floor
+    traverse-upward-occupied{
+                             :pre((elevator ?lift)
+                                  (user ?U)
+                                  (occupied ?lift ?U)
+                                  (moving ?lift true)
+                                  (waiting ?U true)
+                                  (at ?lift ?l-floor)
+                                  (upwards ?l-floor ?above))
+                             :add((at ?l-lift ?above)
+                                  (at ?U ?above))
+                             :del((at ?lift ?l-floor)
+                                  (at ?U ?l-floor))
+                             :txt(?lift moves upward from ?floor to ?above with ?U inside)
+                             :cmd(traversing upwards user)
+                             }
+
+    ;moving the elevator and user down one floor
+    traverse-downward-occupied{
+                               :pre((elevator ?lift)
+                                    (user ?U)
+                                    (waiting ?U true)
+                                    (occupied ?lift ?U)
+                                    (moving ?lift true)
+                                    (at ?lift ?l-floor)
+                                    (downwards ?l-floor ?below))
+                               :add((at ?lift ?below)
+                                    (at ?U ?below))
+                               :del((at ?lift ?l-floor)
+                                    (at ?U ?l-floor))
+                                :txt(?lift moves downward from ?floor to ?below with ?U inside)
+                                :cmd(traversing downwards user)
+                               }
+
+    ;stop the elevator from moving
+    stop-elevator{
+                  :pre((elevator ?lift)
+                       (moving ?lift true))
+                  :add((moving ?lift false))
+                  :del((moving ?lift true))
+                  :txt(?lift has stopped moving)
+                  :cmd(stop lift)
+                  }
+
+    ;wait for the lift to reach the floor the user is on
+    wait-called{
+                :pre((elevator ?lift)
+                     (user ?U)
+                     (waiting ?U false)
+                     (at ?lift ?l-floor)
+                     (at ?U ?u-floor)
+                     (moving ?lift true))
+                :add((waiting ?U true))
+                :del((waiting ?U false))
+                :txt(waiting for ?lift to reach ?u-floor floor)
+                :cmd(waiting at ?u-floor)
+                }
+
+    ;user enters the elevator
+    enter-elevator{
+                   :pre((elevator ?lift)
+                        (user ?U)
+                        (occupied ?lift nil)
+                        (at ?U ?u-floor)
+                        (at ?lift ?u-floor)
+                        (waiting ?U true)
+                        (moving ?lift false)
+                        (opening ?doors ?open)
+                        (true? ?open))
+                   :add((occupied ?lift ?U)
+                        (waiting ?U false))
+                   :del((occupied ?lift nil)
+                        (waiting ?U true))
+                   :txt(?user entered ?lift)
+                   :cmd(enter ?lift)
+                   }
+
+    ;user selects the floor and elevator begins to move
+    user-destination{
+                     :pre((user ?U)
+                          (elevator ?lift)
+                          (occupied ?lift ?U)
+                          (moving ?lift false))
+                     :add((moving ?lift true))
+                     :del((moving ?lift false))
+                     :txt(floor selected)
+                     :cmd(select floor)
+                     }
+
+    ;user waits for elevator to take them to their desired location
+    user-wait-selected{
+                  :pre((user ?U)
+                       (elevator ?lift)
+                       (occupied ?lift ?U)
+                       (moving ?lift true)
+                       (waiting ?U false))
+                  :add((waiting ?U true))
+                  :del((waiting ?U false))
+                  :txt(waiting to reach selected floor)
+                  :cmd(wait in lift)
+                  }
+
+    ;user exits the elevator
+    exit-elevator{
+                  :pre((elevator ?lift)
+                       (user ?U)
+                       (occupied ?lift ?U)
+                       (waiting ?U true)
+                       (at ?U ?u-floor)
+                       (at ?lift ?u-floor)
+                       (moving ?lift false)
+                       (opening ?doors true))
+                  :add((occupied ?lift nil)
+                       (waiting ?U false))
+                  :del((occupied ?lift ?person)
+                       (waiting ?U true))
+                  :txt(?person exited ?lift)
+                  :cmd(exit ?lift)
+                  }
+
+    ;elevator doors open when user is ready to exit/enter lift
     doors-open{
-               :pre ((container ?lift)
+               :pre ((elevator ?lift)
                      (moving ?lift false)
                      (opening ?doors false))
                :add (opening ?doors true)
@@ -195,9 +221,9 @@
                :cmd (opening doors)
                }
 
-    ;lift doors close
+    ;elevator doors close once user has entered/exited lift
     doors-closed{
-                 :pre ((container ?lift)
+                 :pre ((elevator ?lift)
                        (moving ?lift false)
                        (opening ?doors true))
                  :add (opening ?doors false)
