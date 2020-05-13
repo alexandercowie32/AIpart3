@@ -44,7 +44,9 @@
 (def operators
   '{button-pressed {;emulates calling an elevator by an agent
                 :pre ((agent ?Person)
+                      (obstacle ?door)
                       (container ?elevator)
+                      (contains ?lift nil)
                       (moving elevator false)
                       (at ?elevator ?floor)
                       (open ?door false)
@@ -56,17 +58,18 @@
                 }
     stop-elevator{;stop the lift moving
                   :pre((container ?elevator)
+                       (obstacle ?door)
+
                        (moving ?elevator true)
                        (open ?door false))
-                  :add((moving ?elevator false)
-                       (open ?door true))
-                  :del((moving ?elevator true)
-                       (open ?door false))
+                  :add((moving ?elevator false))
+                  :del((moving ?elevator true))
                   :txt(The elevator has stopped.)
                   :cmd(stop elevator)
                   }
     open-door {;opens elevator's door
                 :pre ((container ?elevator)
+                      (obstacle ?door)
                       (open ?door false)
                       (moving ?elevator false))
                 :add ((open ?door true))
@@ -76,6 +79,7 @@
                 }
     close-door {
                 :pre ((container ?elevator)
+                      (obstacle ?door)
                       (open ?door true)
                       (moving ?elevator false))
                 :add ((open ?door false))
@@ -85,6 +89,7 @@
                 }
     empty-going-up{;moving the lift when it is not occupied
              :pre((container ?elevator)
+                  (obstacle ?door)
                   (open ?door false)
                   (contains ?elevator nil)
                   (agent ?Person)
@@ -99,6 +104,7 @@
               }
     empty-going-down{;moving the lift when not occupied
                :pre((container ?elevator)
+                    (obstacle ?door)
                     (open ?door false)
                     (contains ?elevator nil)
                     (agent ?Person)
@@ -113,6 +119,7 @@
                 }
     going-up-with-person{;moving the occupant up one floor
                     :pre((container ?elevator)
+                         (obstacle ?door)
                          (open ?door false)
                          (agent ?Person)
                          (contains ?elevator ?Person)
@@ -129,6 +136,7 @@
                     }
     going-down-with-person{;moving the occupant down one floor
                       :pre((container ?elevator)
+                           (obstacle ?door)
                            (open ?door false)
                            (agent ?Person)
                            (waiting ?Person true)
@@ -146,6 +154,7 @@
 
     wait-for-elevator{;wait for the lift to reach the floor the agent is on
                  :pre((container ?elevator)
+                      (obstacle ?door)
                       (open ?door false)
                       (agent ?Person)
                       (waiting ?Person false)
@@ -159,6 +168,7 @@
              }
     person-enters-elevator{;person enters the lift
            :pre((container ?elevator)
+                (obstacle ?door)
                 (open ?door true)
                 (agent ?person)
                 (contains ?elevator nil)
@@ -167,30 +177,31 @@
                 (waiting ?person true)
                 (moving ?elevator false))
            :add((contains ?elevator ?person)
-                (waiting ?person false)
-                (open ?door false))
+                (waiting ?person false))
            :del((contains ?elevator nil)
-                (waiting ?person true)
-                (open ?door true))
+                (waiting ?person true))
            :txt(?person entered the ?elevator)
            :cmd(enter ?elevator)
            }
     person-selects-floor{;person selects the floor and lift starts moving
                   :pre((agent ?person)
-                       (open ?door true)
+                       (waiting ?person false)
+                       (obstacle ?door)
+                       (open ?door false)
                        (container ?elevator)
                        (contains ?elevator ?person)
                        (moving ?elevator false))
                   :add((moving ?elevator true)
-                       (open ?door false))
+                       (waiting ?person true))
                   :del((moving ?elevator false)
-                       (open ?door true))
+                       (waiting ?person false))
                   :txt(floor selected)
                   :cmd(select floor)
                   }
     wait-selected{;person waits for lift to take them to their floor
                    :pre((agent ?person)
                         (container ?elevator)
+                        (obstacle ?door)
                         (open ?door false)
                         (contains ?elevator ?person)
                         (moving ?elevator true)
@@ -202,6 +213,7 @@
                    }
     person-exits-elevator{;person exits the lift
           :pre((container ?elevator)
+               (obstacle ?door)
                (agent ?person)
                (contains ?elevator ?person)
                (waiting ?person true)
