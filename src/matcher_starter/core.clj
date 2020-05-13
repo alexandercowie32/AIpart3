@@ -198,17 +198,19 @@
                        (user ?U)
                        (occupied ?lift ?U)
                        (waiting ?U true)
-                       (at ?U ?u-floor)
-                       (at ?lift ?u-floor)
+                       (at ?lift ?l-floor)
                        (moving ?lift false)
                        (opening ?doors true))
                   :add((occupied ?lift nil)
+                       (at ?U ?l-floor)
                        (waiting ?U false))
                   :del((occupied ?lift ?person)
-                       (waiting ?U true))
-                  :txt(?person exited ?lift)
+                       (waiting ?U true)
+                       (at ?U ?u-floor))
+                  :txt(?person exited ?lift at ?u-floor)
                   :cmd(exit ?lift)
                   }
+
 
     ;elevator doors open when user is ready to exit/enter lift
     doors-open{
