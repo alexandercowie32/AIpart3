@@ -6,17 +6,17 @@
 
 (def lift-state-1
   '#{(at lift ground)
-     (at User fifth)
-     (opening doors false)
-     (waiting User false)
+     (at Person fifth)
+     (open doors false)
+     (waiting Person false)
      (moving lift false)
      (occupied lift nil)})
 
 (def lift-state-2
   '#{(at lift fifth)
-     (at User ground)
-     (opening doors false)
-     (waiting User false)
+     (at Person ground)
+     (open doors false)
+     (waiting Person false)
      (moving lift false)
      (occupied lift nil)})
 
@@ -25,6 +25,7 @@
   '#{
      (elevator lift)
      (user Person)
+     (obstacle doors)
      (location ground)
      (location first)
      (location second)
@@ -51,6 +52,7 @@
     request-elevator{
                      :pre ((user ?U)
                            (elevator ?lift)
+                           (occupied ?lift nil)
                            (moving lift false)
                            (at ?lift ?l-floor)
                            (at ?U ?u-floor))
@@ -64,7 +66,6 @@
     traverse-upward{
                     :pre((elevator ?lift)
                          (user ?U)
-                         (occupied ?lift nil)
                          (waiting ?U true)
                          (moving ?lift true)
                          (at ?lift ?l-floor)
@@ -78,7 +79,6 @@
     ;moving the elevator downwards while it is not occupied
     traverse-downward{
                       :pre((elevator ?lift)
-                           (occupied ?lift nil)
                            (user ?U)
                            (waiting ?U true)
                            (moving ?lift true)
@@ -90,39 +90,9 @@
                       :cmd(traversing downwards lift)
                       }
 
-    ;moving the elevator and user up one floor
-    traverse-upward-occupied{
-                             :pre((elevator ?lift)
-                                  (user ?U)
-                                  (occupied ?lift ?U)
-                                  (moving ?lift true)
-                                  (waiting ?U true)
-                                  (at ?lift ?l-floor)
-                                  (upwards ?l-floor ?above))
-                             :add((at ?l-lift ?above)
-                                  (at ?U ?above))
-                             :del((at ?lift ?l-floor)
-                                  (at ?U ?l-floor))
-                             :txt(?lift moves upward from ?floor to ?above with ?U inside)
-                             :cmd(traversing upwards user)
-                             }
 
-    ;moving the elevator and user down one floor
-    traverse-downward-occupied{
-                               :pre((elevator ?lift)
-                                    (user ?U)
-                                    (waiting ?U true)
-                                    (occupied ?lift ?U)
-                                    (moving ?lift true)
-                                    (at ?lift ?l-floor)
-                                    (downwards ?l-floor ?below))
-                               :add((at ?lift ?below)
-                                    (at ?U ?below))
-                               :del((at ?lift ?l-floor)
-                                    (at ?U ?l-floor))
-                                :txt(?lift moves downward from ?floor to ?below with ?U inside)
-                                :cmd(traversing downwards user)
-                               }
+
+
 
     ;stop the elevator from moving
     stop-elevator{
@@ -151,25 +121,28 @@
     ;user enters the elevator
     enter-elevator{
                    :pre((elevator ?lift)
+                        (obstacle ?doors)
                         (user ?U)
                         (occupied ?lift nil)
                         (at ?U ?u-floor)
                         (at ?lift ?u-floor)
                         (waiting ?U true)
                         (moving ?lift false)
-                        (opening ?doors ?open)
-                        (true? ?open))
+                        (open ?doors true)
+                        )
                    :add((occupied ?lift ?U)
                         (waiting ?U false))
                    :del((occupied ?lift nil)
                         (waiting ?U true))
-                   :txt(?user entered ?lift)
+                   :txt(?U entered ?lift)
                    :cmd(enter ?lift)
                    }
 
     ;user selects the floor and elevator begins to move
     user-destination{
                      :pre((user ?U)
+                          (obstacle doors)
+                          (open ?doors false)
                           (elevator ?lift)
                           (occupied ?lift ?U)
                           (moving ?lift false))
@@ -183,6 +156,8 @@
     user-wait-selected{
                   :pre((user ?U)
                        (elevator ?lift)
+                       (obstacle ?doors)
+                       (open ?doors false)
                        (occupied ?lift ?U)
                        (moving ?lift true)
                        (waiting ?U false))
@@ -195,19 +170,22 @@
     ;user exits the elevator
     exit-elevator{
                   :pre((elevator ?lift)
+                       (obstacle ?doors)
                        (user ?U)
                        (occupied ?lift ?U)
                        (waiting ?U true)
                        (at ?lift ?l-floor)
+                       (at ?U ?u-floor)
                        (moving ?lift false)
-                       (opening ?doors true))
+                       (open ?doors true)
+                       )
                   :add((occupied ?lift nil)
                        (at ?U ?l-floor)
                        (waiting ?U false))
                   :del((occupied ?lift ?person)
                        (waiting ?U true)
                        (at ?U ?u-floor))
-                  :txt(?person exited ?lift at ?u-floor)
+                  :txt(?U exited ?lift at ?u-floor)
                   :cmd(exit ?lift)
                   }
 
@@ -215,21 +193,23 @@
     ;elevator doors open when user is ready to exit/enter lift
     doors-open{
                :pre ((elevator ?lift)
+                     (obstacle ?doors)
                      (moving ?lift false)
-                     (opening ?doors false))
-               :add (opening ?doors true)
-               :del (opening ?doors false)
-               :txt (opening ?lift doors)
-               :cmd (opening doors)
+                     (open ?doors false))
+               :add ((open ?doors true))
+               :del ((open ?doors false))
+               :txt (open ?lift doors)
+               :cmd (open doors)
                }
 
     ;elevator doors close once user has entered/exited lift
     doors-closed{
                  :pre ((elevator ?lift)
+                       (obstacle ?doors)
                        (moving ?lift false)
-                       (opening ?doors true))
-                 :add (opening ?doors false)
-                 :del (opening ?doors true)
+                       (open ?doors true))
+                 :add ((open ?doors false))
+                 :del ((open ?doors true))
                  :txt (closing ?lift doors)
                  :cmd (closing doors)
                  }
